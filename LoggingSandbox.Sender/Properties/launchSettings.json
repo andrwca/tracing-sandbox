@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LoggingSandbox.Sender": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}
