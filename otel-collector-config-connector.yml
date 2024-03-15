@@ -1,0 +1,55 @@
+# configure the otel collector to take input and output to jaeger
+receivers:
+
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  jaeger:
+    protocols:
+      thrift_http:
+        endpoint: "0.0.0.0:14278"
+
+exporters:
+
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
+  otlp:
+    tls:
+      insecure: true
+    endpoint: jaeger:4317
+
+connectors:
+  spanmetrics:
+
+processors:
+  batch:
+
+service:
+  telemetry:
+    logs:
+      level: "debug"
+  pipelines:
+
+    traces:
+      receivers: [otlp, jaeger]
+      processors: [batch]
+      exporters: [spanmetrics, otlp]
+
+    # The spanmmetrics exporter and reciever are linked, allowing traces to be converted to metrics.
+    metrics/spanmetrics:
+      receivers: [spanmetrics]
+      exporters: [prometheus]
+
+    # metrics:
+    #   receivers: [otlp]
+    #   processors: []
+    #   exporters: [otlp, otlphttp]
+    # logs:
+    #   receivers: [otlp]
+    #   processors: []
+    #   exporters: [otlp, otlphttp]

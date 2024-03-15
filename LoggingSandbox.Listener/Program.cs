@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Azure.Monitor.OpenTelemetry.Exporter;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -40,16 +42,13 @@ namespace LoggingSandbox.Listener
                     {
                         tracing
 
-                            // Use Jaeger
+                            // Export to the otel collector
                             .AddOtlpExporter(o =>
                             {
                                 o.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
-                                o.Endpoint = new Uri("http://jaeger:4317");
-                                o.ExportProcessorType = OpenTelemetry.ExportProcessorType.Simple;
+                                o.Endpoint = new Uri("http://otel_collector:4317");
+                                o.ExportProcessorType = ExportProcessorType.Simple;
                             })
-
-                            // Or Zipkin
-                            .AddZipkinExporter(o => o.Endpoint = new Uri("http://zipkin:9411/api/v2/spans"))
 
                             .AddSource("*")
                             .SetErrorStatusOnException(true);

@@ -5,34 +5,14 @@ networks:
     ipam:
       config:
         - subnet: 1.0.0.0/16
-  
-services:
+ 
+# See https://github.com/jaegertracing/jaeger/blob/main/docker-compose/monitor/docker-compose.yml
 
-  loggingsandboxlistener:
-    image: ${DOCKER_REGISTRY-}loggingsandboxlistener
-    build:
-      context: .
-      dockerfile: LoggingSandbox.Listener/Dockerfile
-    depends_on:
-      - jaeger
-      - zipkin
-    networks:
-      - local-network
+services:   
 
-  loggingsandboxsender:
-    image: ${DOCKER_REGISTRY-}loggingsandboxsender
-    build:
-      context: .
-      dockerfile: LoggingSandbox.Sender/Dockerfile
-    depends_on:
-      - jaeger
-      - zipkin
-    networks:
-      - local-network
-      
   jaeger:
     hostname: jaeger
-    image: jaegertracing/all-in-one:1.50
+    image: jaegertracing/all-in-one:1.55
     ports:
       - "6831:6831"
       - "6832:6832"
@@ -45,13 +25,71 @@ services:
       - "14268:14268"
       - "14269:14269"
     environment:
-      COLLECTOR_OTLP_ENABLED: true   
+      - COLLECTOR_OTLP_ENABLED=true   
+      - METRICS_STORAGE_TYPE=prometheus
+      - PROMETHEUS_SERVER_URL=http://prometheus:9090
+      - PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR=${PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR:-true}
+      - PROMETHEUS_QUERY_NAMESPACE=${PROMETHEUS_QUERY_NAMESPACE:-}
+      - PROMETHEUS_QUERY_DURATION_UNIT=${PROMETHEUS_QUERY_DURATION_UNIT:-}
+      - PROMETHEUS_QUERY_NORMALIZE_CALLS=true
+      - PROMETHEUS_QUERY_NORMALIZE_DURATION=true
     networks:
       - local-network
 
-  zipkin:
-    image: openzipkin/zipkin
+  otel_collector:
+    image: otel/opentelemetry-collector-contrib
+    volumes:
+      - ${OTEL_CONFIG_SRC:-./otel-collector-config-connector.yml}:/etc/otelcol/otel-collector-config.yml
+    command: --config /etc/otelcol/otel-collector-config.yml
     ports:
-      - 9411:9411
+      - 43170:4317
+      - 55680:55680
+    networks:
+      - local-network
+
+  prometheus:
+    networks:
+      - local-network
+    image: prom/prometheus:latest
+    volumes:
+      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+
+  grafana:
+    networks:
+      - local-network
+    image: grafana/grafana:latest
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini
+      - ./datasource.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    ports:
+      - 3000:3000
+
+  loggingsandboxlistener:
+    image: ${DOCKER_REGISTRY-}loggingsandboxlistener
+    build:
+      context: .
+      dockerfile: LoggingSandbox.Listener/Dockerfile
+    depends_on:
+      - jaeger
+    environment:
+        APPLICATIONINSIGHTS_CONNECTION_STRING: InstrumentationKey=6171c690-de89-4f09-a9c1-76d1abbebfa1;IngestionEndpoint=https://uksouth-1.in.applicationinsights.azure.com/;LiveEndpoint=https://uksouth.livediagnostics.monitor.azure.com/
+    networks:
+      - local-network
+
+  loggingsandboxsender:
+    image: ${DOCKER_REGISTRY-}loggingsandboxsender
+    build:
+      context: .
+      dockerfile: LoggingSandbox.Sender/Dockerfile
+    depends_on:
+      - jaeger
+    environment:
+        APPLICATIONINSIGHTS_CONNECTION_STRING: InstrumentationKey=6171c690-de89-4f09-a9c1-76d1abbebfa1;IngestionEndpoint=https://uksouth-1.in.applicationinsights.azure.com/;LiveEndpoint=https://uksouth.livediagnostics.monitor.azure.com/
     networks:
       - local-network
