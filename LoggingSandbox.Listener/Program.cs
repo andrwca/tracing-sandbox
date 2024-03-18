@@ -1,7 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Azure.Monitor.OpenTelemetry.Exporter;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Reflection;
@@ -23,7 +26,10 @@ namespace LoggingSandbox.Listener
                     {
                         o.IncludeScopes = true;
                         o.IncludeFormattedMessage = true;
-
+                        o.AddOtlpExporter(otlpOptions =>
+                        {
+                            otlpOptions.Endpoint = new Uri("http://otel_collector:4317");
+                        });
                         var resourceBuilder = ResourceBuilder
                             .CreateDefault()
                             .AddService(Assembly.GetExecutingAssembly().GetName().Name);
@@ -38,21 +44,25 @@ namespace LoggingSandbox.Listener
                     .AddService(serviceName: Assembly.GetExecutingAssembly().GetName().Name))
                     .WithTracing(tracing =>
                     {
-                        tracing
-
-                            // Use Jaeger
-                            .AddOtlpExporter(o =>
+                        tracing.AddOtlpExporter(o =>
                             {
                                 o.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
-                                o.Endpoint = new Uri("http://jaeger:4317");
-                                o.ExportProcessorType = OpenTelemetry.ExportProcessorType.Simple;
+                                o.Endpoint = new Uri("http://otel_collector:4317");
+                                o.ExportProcessorType = ExportProcessorType.Simple;
                             })
-
-                            // Or Zipkin
-                            .AddZipkinExporter(o => o.Endpoint = new Uri("http://zipkin:9411/api/v2/spans"))
 
                             .AddSource("*")
                             .SetErrorStatusOnException(true);
+                    })
+                    .WithMetrics(metrics =>
+                    {
+                        metrics.AddOtlpExporter(o =>
+                        {
+                            o.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+                            o.Endpoint = new Uri("http://otel_collector:4317");
+                            o.ExportProcessorType = ExportProcessorType.Simple;
+                        })
+                        .AddMeter("*");
                     });
 
                 _ = services.AddHostedService<TestBackgroundService>();

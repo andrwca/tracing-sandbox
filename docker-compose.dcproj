@@ -6,10 +6,15 @@
     <ProjectGuid>714d5c5e-66a5-4edc-a002-e0485e5270cc</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="datasource.yml" />
     <None Include="docker-compose.override.yml">
       <DependentUpon>docker-compose.yml</DependentUpon>
     </None>
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
+    <None Include="grafana.ini" />
+    <None Include="otel-collector-config-connector.yml" />
+    <None Include="prometheus.yml" />
+    <None Include="tempo.yaml" />
   </ItemGroup>
 </Project>

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -13,6 +14,9 @@ namespace LoggingSandbox.Listener
         private readonly ILogger<TestBackgroundService> _logger;
 
         private static readonly ActivitySource ActivitySource = new(typeof(TestBackgroundService).FullName);
+
+        private static readonly Meter Meter = new Meter("message_meter", "0.0.1");
+        private static readonly Counter<int> MessagedReceivedCounter = Meter.CreateCounter<int>("messages_received");
 
         public TestBackgroundService(ILogger<TestBackgroundService> logger)
         {
@@ -26,10 +30,11 @@ namespace LoggingSandbox.Listener
             while (!stoppingToken.IsCancellationRequested)
             {
                 var result = await client.ReceiveAsync();
+                MessagedReceivedCounter.Add(1);
 
                 var message = JsonSerializer.Deserialize<Message>(Encoding.UTF8.GetString(result.Buffer));
-
-                ActivityContext parentContext = new ActivityContext(ActivityTraceId.CreateFromString(message.TraceId), ActivitySpanId.CreateFromString(message.SpanId), ActivityTraceFlags.Recorded);
+                var activityId = ActivityTraceId.CreateFromString(message.TraceId);
+                ActivityContext parentContext = new ActivityContext(activityId, ActivitySpanId.CreateFromString(message.SpanId), ActivityTraceFlags.Recorded);
 
                 using (var activity = ActivitySource.StartActivity("ProcessingMessage", ActivityKind.Internal, parentContext))
                 {
@@ -41,7 +46,7 @@ namespace LoggingSandbox.Listener
                     activity?.SetStatus(ActivityStatusCode.Ok);
                 }
 
-                _logger.LogInformation("This is a test.");
+                _logger.LogInformation($"This is a test from the listener, activity ID {activityId}.");
             }
         }
         private async Task UpdateMessageAsync()
