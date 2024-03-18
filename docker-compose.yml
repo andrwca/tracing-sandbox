@@ -1,15 +1,14 @@
-version: '3.4'
+version: "3.4"
 
 networks:
   local-network:
     ipam:
       config:
         - subnet: 1.0.0.0/16
- 
+
 # See https://github.com/jaegertracing/jaeger/blob/main/docker-compose/monitor/docker-compose.yml
 
-services:   
-
+services:
   jaeger:
     hostname: jaeger
     image: jaegertracing/all-in-one:1.55
@@ -25,7 +24,7 @@ services:
       - "14268:14268"
       - "14269:14269"
     environment:
-      - COLLECTOR_OTLP_ENABLED=true   
+      - COLLECTOR_OTLP_ENABLED=true
       - METRICS_STORAGE_TYPE=prometheus
       - PROMETHEUS_SERVER_URL=http://prometheus:9090
       - PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR=${PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR:-true}
@@ -46,6 +45,11 @@ services:
       - 55680:55680
     networks:
       - local-network
+    environment:
+      LOKI_ENDPOINT: "http://loki:3100/loki/api/v1/push"
+    depends_on:
+      - jaeger
+      - loki
 
   prometheus:
     networks:
@@ -70,6 +74,13 @@ services:
     ports:
       - 3000:3000
 
+  loki:
+    image: grafana/loki
+    ports:
+      - "3100"
+    networks:
+      - local-network
+
   loggingsandboxlistener:
     image: ${DOCKER_REGISTRY-}loggingsandboxlistener
     build:
@@ -78,7 +89,7 @@ services:
     depends_on:
       - jaeger
     environment:
-        APPLICATIONINSIGHTS_CONNECTION_STRING: InstrumentationKey=6171c690-de89-4f09-a9c1-76d1abbebfa1;IngestionEndpoint=https://uksouth-1.in.applicationinsights.azure.com/;LiveEndpoint=https://uksouth.livediagnostics.monitor.azure.com/
+      APPLICATIONINSIGHTS_CONNECTION_STRING: InstrumentationKey=6171c690-de89-4f09-a9c1-76d1abbebfa1;IngestionEndpoint=https://uksouth-1.in.applicationinsights.azure.com/;LiveEndpoint=https://uksouth.livediagnostics.monitor.azure.com/
     networks:
       - local-network
 
@@ -90,6 +101,6 @@ services:
     depends_on:
       - jaeger
     environment:
-        APPLICATIONINSIGHTS_CONNECTION_STRING: InstrumentationKey=6171c690-de89-4f09-a9c1-76d1abbebfa1;IngestionEndpoint=https://uksouth-1.in.applicationinsights.azure.com/;LiveEndpoint=https://uksouth.livediagnostics.monitor.azure.com/
+      APPLICATIONINSIGHTS_CONNECTION_STRING: InstrumentationKey=6171c690-de89-4f09-a9c1-76d1abbebfa1;IngestionEndpoint=https://uksouth-1.in.applicationinsights.azure.com/;LiveEndpoint=https://uksouth.livediagnostics.monitor.azure.com/
     networks:
       - local-network

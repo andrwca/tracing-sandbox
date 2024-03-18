@@ -28,8 +28,8 @@ namespace LoggingSandbox.Listener
                 var result = await client.ReceiveAsync();
 
                 var message = JsonSerializer.Deserialize<Message>(Encoding.UTF8.GetString(result.Buffer));
-
-                ActivityContext parentContext = new ActivityContext(ActivityTraceId.CreateFromString(message.TraceId), ActivitySpanId.CreateFromString(message.SpanId), ActivityTraceFlags.Recorded);
+                var activityId = ActivityTraceId.CreateFromString(message.TraceId);
+                ActivityContext parentContext = new ActivityContext(activityId, ActivitySpanId.CreateFromString(message.SpanId), ActivityTraceFlags.Recorded);
 
                 using (var activity = ActivitySource.StartActivity("ProcessingMessage", ActivityKind.Internal, parentContext))
                 {
@@ -41,7 +41,7 @@ namespace LoggingSandbox.Listener
                     activity?.SetStatus(ActivityStatusCode.Ok);
                 }
 
-                _logger.LogInformation("This is a test.");
+                _logger.LogInformation($"This is a test from the listener, activity ID {activityId}.");
             }
         }
         private async Task UpdateMessageAsync()

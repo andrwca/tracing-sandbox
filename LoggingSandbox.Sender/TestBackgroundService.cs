@@ -27,21 +27,19 @@ namespace LoggingSandbox.Sender
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("This is a test.");
 
-                using (var activity = ActivitySource.StartActivity("SendingMessage"))
+                using var activity = ActivitySource.StartActivity("SendingMessage");
+                var message = new Message()
                 {
-                    var message = new Message()
-                    {
-                        Payload = "Hello",
-                        TraceId = activity.TraceId.ToString(),
-                        SpanId = activity.SpanId.ToString()
-                    };
+                    Payload = "Hello",
+                    TraceId = activity.TraceId.ToString(),
+                    SpanId = activity.SpanId.ToString()
+                };
 
-                    udpClient.Send(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)), "loggingsandboxlistener", 5000);
+                _logger.LogInformation($"This is a test from the sender activity ID {activity.TraceId}.");
+                udpClient.Send(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)), "loggingsandboxlistener", 5000);
 
-                    activity?.SetStatus(ActivityStatusCode.Ok, "Successfully sent message");
-                }
+                activity?.SetStatus(ActivityStatusCode.Ok, "Successfully sent message");
 
                 await Task.Delay(5000, stoppingToken);
             }

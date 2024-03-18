@@ -25,7 +25,10 @@ namespace LoggingSandbox.Listener
                     {
                         o.IncludeScopes = true;
                         o.IncludeFormattedMessage = true;
-
+                        o.AddOtlpExporter(otlpOptions =>
+                        {
+                            otlpOptions.Endpoint = new Uri("http://otel_collector:4317");
+                        });
                         var resourceBuilder = ResourceBuilder
                             .CreateDefault()
                             .AddService(Assembly.GetExecutingAssembly().GetName().Name);

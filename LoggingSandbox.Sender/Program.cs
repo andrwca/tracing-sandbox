@@ -25,7 +25,10 @@ namespace LoggingSandbox.Sender
                     {
                         o.IncludeScopes = true;
                         o.IncludeFormattedMessage = true;
-
+                        o.AddOtlpExporter(otlpOptions =>
+                        {
+                            otlpOptions.Endpoint = new Uri("http://otel_collector:4317");
+                        });
                         var resourceBuilder = ResourceBuilder
                             .CreateDefault()
                             .AddService(Assembly.GetExecutingAssembly().GetName().Name);
@@ -34,6 +37,7 @@ namespace LoggingSandbox.Sender
                         o.AddConsoleExporter();
                     });
                 });
+
 
                 services.AddOpenTelemetry()
                     .ConfigureResource(resource => resource
@@ -48,7 +52,7 @@ namespace LoggingSandbox.Sender
                                 o.Endpoint = new Uri("http://otel_collector:4317");
                                 o.ExportProcessorType = ExportProcessorType.Simple;
                             })
-                            
+
                             .AddSource("*")
                             .SetErrorStatusOnException(true);
                     });
