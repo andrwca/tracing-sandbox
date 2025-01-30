@@ -6,14 +6,12 @@ networks:
       config:
         - subnet: 1.0.0.0/16
 
-# See https://github.com/jaegertracing/jaeger/blob/main/docker-compose/monitor/docker-compose.yml
-
 services:   
 
   otel_collector:
     image: otel/opentelemetry-collector-contrib
     volumes:
-      - ${OTEL_CONFIG_SRC:-./otel-collector-config-connector.yml}:/etc/otelcol/otel-collector-config.yml
+      - ./otel-collector-config.yml:/etc/otelcol/otel-collector-config.yml
     command: --config /etc/otelcol/otel-collector-config.yml
     ports:
       - 43170:4317

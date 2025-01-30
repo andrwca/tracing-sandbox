@@ -13,7 +13,7 @@
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
     <None Include="grafana.ini" />
-    <None Include="otel-collector-config-connector.yml" />
+    <None Include="otel-collector-config.yml" />
     <None Include="prometheus.yml" />
     <None Include="tempo.yaml" />
   </ItemGroup>
